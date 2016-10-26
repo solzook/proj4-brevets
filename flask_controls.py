@@ -45,7 +45,7 @@ def index():
 @app.errorhandler(404)
 def page_not_found(error):
     app.logger.debug("Page not found")
-    flask.session['linkback'] =  flask.url_for("/")
+    flask.session['linkback'] =  flask.url_for("index")
     return flask.render_template('page_not_found.html'), 404
 
 
@@ -65,8 +65,17 @@ def _calc_times():
   app.logger.debug("Got a JSON request");
   km = request.args.get('km', 0, type=int)
   #FIXME: These probably aren't the right open and close times
-  open_time = acp_times.open_time(km, 200, arrow.now().isoformat)
-  close_time = acp_times.close_time(km, 200, arrow.now().isoformat)
+  brevet_dist_in_km = request.args.get('distance', -1, type=int)
+  app.logger.debug("distance is {}".format(brevet_dist_in_km))
+  #begin_date = request.args.get('begin_date', type=str)
+  #begin_time = request.args.get('begin_time', type=str)
+  brevet_start = arrow.get("2017-01-01 00:00", "YYYY-MM-DD HH:mm")
+  open_time = acp_times.open_time(km, brevet_dist_in_km, brevet_start.isoformat()) 
+  close_time = acp_times.close_time(km, brevet_dist_in_km, brevet_start.isoformat())
+
+  # client passes time in utc offset = 0, convert calculated times to that timezone before returning them
+  open_time = arrow.get(open_time).to("utc").isoformat()
+  close_time = arrow.get(close_time).to("utc").isoformat()
   result={ "open": open_time, "close": close_time }
   return jsonify(result=result)
 
